@@ -21,5 +21,5 @@ This script solves the evolution equations for a spatially extended system and c
 This script solves the evolution equations for a spatially extended system and simultaneously tracks the motion of tracers advected by the velocity field. The resulting trajectories can then be used to visualize the modes of collective transport.
 
 *determineStateDiagram.py* <br>
-This script determines the boundaries between regions in the state diagram of the system. These are calculated based on the stability of the stationary states (isotropic and polar) and the existence of the rotational solutions. The script moves through different values of the displacement relaxation time and determines the values of the active force strength that mark the boundaries.
+This script determines the boundaries between regions in the state diagram of the system. These are calculated based on the linear stability of the stationary states (isotropic and polar) and the existence of the rotational solutions. The script moves through different values of the displacement relaxation time and determines the values of the active force strength that mark the boundaries. For the calculations, we employ bisection methods, that is, we start from a large interval of possible values of active force strength and successively half the size of this interval until an appropriate accuracy is achieved.
 
