@@ -43,6 +43,7 @@ nMean = 0
 PMeanData = np.zeros((NMean,4))
 vMeanData = np.zeros((NMean,4))
 uMeanData = np.zeros((NMean,4))
+defectsMeanData = np.zeros((NMean,5))
 
 NCorr = int(N/2)
 phaseDiffPvCorr = np.zeros(NCorr)
@@ -342,6 +343,90 @@ for nStep in range(0,numSteps):
 		for k in range(0,NCorr):
 			phaseDiffPvCorr[k] = phaseDiffPvCorr[k] + 0.25*np.mean(angleDiffPv*(np.roll(angleDiffPv,k,axis=0) + np.roll(angleDiffPv,-k,axis=0) + np.roll(angleDiffPv,k,axis=1) + np.roll(angleDiffPv,-k,axis=1)))
 		
+		angleP[angleP>np.pi] = angleP[angleP>np.pi] - 2.0*np.pi
+		angleP[angleP<-np.pi] = angleP[angleP<-np.pi] + 2.0*np.pi
+		
+		# topological charge of grid points
+		topoChargeP = np.zeros((N,N))
+		topoChargev = np.zeros((N,N))
+		
+		# determine topological charges
+		for i in range(0,N):
+			for j in range(0,N):
+				
+				# periodic boundary conditions
+				iP = i + 1
+				if iP == N: iP = 0
+				jP = j + 1
+				if jP == N: jP = 0
+				iM = i - 1
+				if iM == -1: iM = N-1
+				jM = j - 1
+				if jM == -1: jM = N-1
+				
+				topoChargeP[i,j] += np.fmod(angleP[iP,jP] - angleP[iP,j ],np.pi)/np.pi
+				topoChargeP[i,j] += np.fmod(angleP[i ,jP] - angleP[iP,jP],np.pi)/np.pi
+				topoChargeP[i,j] += np.fmod(angleP[iM,jP] - angleP[i ,jP],np.pi)/np.pi
+				topoChargeP[i,j] += np.fmod(angleP[iM,j ] - angleP[iM,jP],np.pi)/np.pi
+				topoChargeP[i,j] += np.fmod(angleP[iM,jM] - angleP[iM,j ],np.pi)/np.pi
+				topoChargeP[i,j] += np.fmod(angleP[i ,jM] - angleP[iM,jM],np.pi)/np.pi
+				topoChargeP[i,j] += np.fmod(angleP[iP,jM] - angleP[i ,jM],np.pi)/np.pi
+				topoChargeP[i,j] += np.fmod(angleP[iP,j ] - angleP[iP,jM],np.pi)/np.pi
+			
+				topoChargev[i,j] += np.fmod(anglev[iP,jP] - anglev[iP,j ],np.pi)/np.pi
+				topoChargev[i,j] += np.fmod(anglev[i ,jP] - anglev[iP,jP],np.pi)/np.pi
+				topoChargev[i,j] += np.fmod(anglev[iM,jP] - anglev[i ,jP],np.pi)/np.pi
+				topoChargev[i,j] += np.fmod(anglev[iM,j ] - anglev[iM,jP],np.pi)/np.pi
+				topoChargev[i,j] += np.fmod(anglev[iM,jM] - anglev[iM,j ],np.pi)/np.pi
+				topoChargev[i,j] += np.fmod(anglev[i ,jM] - anglev[iM,jM],np.pi)/np.pi
+				topoChargev[i,j] += np.fmod(anglev[iP,jM] - anglev[i ,jM],np.pi)/np.pi
+				topoChargev[i,j] += np.fmod(anglev[iP,j ] - anglev[iP,jM],np.pi)/np.pi
+				
+		# to save the locations of defects
+		defectPosLocP = np.array([]).reshape(0,2)
+		defectNegLocP = np.array([]).reshape(0,2)
+		defectPosLocv = np.array([]).reshape(0,2)
+		defectNegLocv = np.array([]).reshape(0,2)
+		
+		# determine locations of defects
+		for i in range(0,N):
+			for j in range(0,N):
+				
+				# periodic boundary conditions
+				iP = i + 1
+				if iP == N: iP = 0	
+				jP = j + 1
+				if jP == N: jP = 0
+				iM = i - 1
+				if iM == -1: iM = N-1
+				jM = j - 1
+				if jM == -1: jM = N-1
+				
+				if topoChargeP[i,j] > 0.9 and topoChargeP[iP,j] > 0.9 and topoChargeP[iP,jP] > 0.9 and topoChargeP[i,jP] > 0.9:
+					defectPosLocP = np.vstack((defectPosLocP,np.array([i*dx+0.5*dx,j*dx+0.5*dx])))
+					
+				if topoChargeP[i,j] < -0.9 and topoChargeP[iP,j] < -0.9 and topoChargeP[iP,jP] < -0.9 and topoChargeP[i,jP] < -0.9:
+					defectNegLocP = np.vstack((defectNegLocP,np.array([i*dx+0.5*dx,j*dx+0.5*dx])))
+			
+				if topoChargev[i,j] > 0.9 and topoChargev[iP,j] > 0.9 and topoChargev[iP,jP] > 0.9 and topoChargev[i,jP] > 0.9:
+					defectPosLocv = np.vstack((defectPosLocv,np.array([i*dx+0.5*dx,j*dx+0.5*dx])))
+					
+				if topoChargev[i,j] < -0.9 and topoChargev[iP,j] < -0.9 and topoChargev[iP,jP] < -0.9 and topoChargev[i,jP] < -0.9:
+					defectNegLocv = np.vstack((defectNegLocv,np.array([i*dx+0.5*dx,j*dx+0.5*dx])))
+		
+		# determine number of defects
+		numPlus1DefectsP  = np.shape(defectPosLocP)[0]
+		numMinus1DefectsP = np.shape(defectNegLocP)[0]
+		numPlus1Defectsv  = np.shape(defectPosLocv)[0]
+		numMinus1Defectsv = np.shape(defectNegLocv)[0]
+		
+		# save number of defects
+		defectsMeanData[nMean,0] = dt*nStep
+		defectsMeanData[nMean,1] = numPlus1DefectsP	
+		defectsMeanData[nMean,2] = numMinus1DefectsP	
+		defectsMeanData[nMean,3] = numPlus1Defectsv	
+		defectsMeanData[nMean,4] = numMinus1Defectsv
+		
 		nMean += 1
 	
 	# show progress
@@ -380,10 +465,11 @@ for nStep in range(0,numSteps):
 	ux = ux + (k1ux + 2.0*k2ux + 2.0*k3ux + k4ux)/6.0
 	uy = uy + (k1uy + 2.0*k2uy + 2.0*k3uy + k4uy)/6.0
 	
-# save mean values
+# save mean values in data files
 np.savetxt(folderName+'/dataPMean.dat',np.asarray(PMeanData))
 np.savetxt(folderName+'/datavMean.dat',np.asarray(vMeanData))
 np.savetxt(folderName+'/datauMean.dat',np.asarray(uMeanData))
+np.savetxt(folderName+'/dataDefectsMean%04d.dat'%(runNum),np.asarray(defectsMeanData))
 
 # save spatial correlation of phase shift between P and v
 phaseDiffPvCorr/float(nMean)
